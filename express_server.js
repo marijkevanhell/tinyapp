@@ -1,3 +1,4 @@
+//REQUIREMENTS
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
@@ -14,10 +15,10 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-//middleware
+//MIDDLEWARE
 app.use(express.urlencoded({ extended: true }));
 
-//routes
+//ROUTES
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -27,13 +28,16 @@ app.get("/urls.json", (req, res) => {
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
+//list or index & read all
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
+//create new
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
+//create
 app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;
   const newShortURL = generateRandomString();
@@ -41,6 +45,12 @@ app.post("/urls", (req, res) => {
    urlDatabase[newShortURL] = longURL;
    res.redirect(`/urls/${newShortURL}`);
 });
+//show
+app.get('/urls/:id', (req, res) => {
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
+  res.render('urls_show', templateVars);
+});
+//show & read one
 app.get("/urls/:id", (req, res) => {
  
   const shortURL = req.params.id;
@@ -48,9 +58,22 @@ app.get("/urls/:id", (req, res) => {
 
   res.redirect(longURL);
 });
+app.post('/urls/:id/', (req, res) => {
+  const editLongURL = req.body.type;
+  //update long url in  database
+  urlDatabase[req.params.id] = editLongURL;
+
+  res.redirect('/urls');
+});
+//delete
+app.post('/urls/:id/delete', (req, res) => {
+  const urlID = req.params.id;
+  delete urlDatabase[urlID];
+  res.redirect('/urls');
+});
 
 
-//server listening
+//LISTENER
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
