@@ -1,13 +1,14 @@
 //REQUIREMENTS
 const express = require("express");
 const app = express();
+const cookieParser = require('cookie-parser')
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 
 function generateRandomString() {
   //random string of characters and cuts off at a length of 6 w/ substr method
-  return Math.random().toString(36).substr(6)
+  return Math.random().toString(36).substr(6);
 }
 
 const urlDatabase = {
@@ -17,6 +18,7 @@ const urlDatabase = {
 
 //MIDDLEWARE
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 //ROUTES
 app.get("/", (req, res) => {
@@ -30,27 +32,37 @@ app.get("/hello", (req, res) => {
 });
 //list or index & read all
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = {
+    username: req.cookies["username"],
+    urls: urlDatabase
+  };
   res.render("urls_index", templateVars);
 });
 //create new
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = {
+    username: req.cookies["username"],
+  };
+  res.render("urls_new", templateVars);
 });
 //create
 app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;
   const newShortURL = generateRandomString();
-   // Add new url to database with generated random string
-   urlDatabase[newShortURL] = longURL;
-   res.redirect(`/urls/${newShortURL}`);
+  // Add new url to database with generated random string
+  urlDatabase[newShortURL] = longURL;
+  res.redirect(`/urls/${newShortURL}`);
 });
-//show
+//show 1 URL
 app.get('/urls/:id', (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
+  const templateVars = {
+    username: req.cookies["username"],
+    id: req.params.id,
+    longURL: urlDatabase[req.params.id]
+  };
   res.render('urls_show', templateVars);
 });
-//show & read one
+//redirect short to long url
 app.get("/urls/:id", (req, res) => {
  
   const shortURL = req.params.id;
@@ -72,8 +84,12 @@ app.post('/urls/:id/delete', (req, res) => {
   res.redirect('/urls');
 });
 //cookie
-app.post('/login', (req, res) => { 
+app.post('/login', (req, res) => {
   res.cookie('username', req.body.username);
+  res.redirect('/urls');
+});
+app.post('/logout', (req, res) => { 
+  res.clearCookie('username', req.body.username);
   res.redirect('/urls');
 });
 
