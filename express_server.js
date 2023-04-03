@@ -83,6 +83,14 @@ app.post('/urls/:id/delete', (req, res) => {
   delete urlDatabase[urlID];
   res.redirect('/urls');
 });
+//register
+app.get("/register", (req, res) => {
+  const templateVars = {
+  username: req.cookies["username"], 
+  urls: urlDatabase 
+  };
+  res.render('urls_register', templateVars);
+});
 //cookie
 app.post('/login', (req, res) => {
   res.cookie('username', req.body.username);
