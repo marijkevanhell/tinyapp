@@ -18,20 +18,20 @@
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
     </div>
-    <% if(username === undefined) {%>
-    <div> 
-      <form method="POST" action="/login">
-        <input name="username" value="Username">
-      <input type="submit" value="Login">
-        </form>
-    </div>
-  </div>
-  <%} else {%>
-    <div>
-      <form method="POST" action="/logout">
-        Logged in as: <%= username %>
-        <input type="submit" value="Logout">
-    </div>
-   <%} %>
+    <% if(!user) {%>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+          <a class="nav-item nav-link" href="/login">Login</a>
+          <a class="nav-item nav-link" href="/register">Register</a>
+        </div>
+      </div>
+    <%} else {%>
+      <form method="POST" action="/logout" class="form-inline">
+        <div class="form-group form-inline">
+          <label>Logged in as: <%= user.email %></label>
+          <input type="submit" value="Logout">
+        </div>
+      </form>
+     <%} %>
   </nav>
 </header>
