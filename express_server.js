@@ -24,11 +24,27 @@ const checkIfEmailExists = function(email) {
   }
   return false;
 };
+//returns URLs where userID = id of the currently logged-in user
+const urlsForUser = function(id, urlDatabase) {
+  const userURLs = {};
+  for (const shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === id) {
+      userURLs[shortURL] = urlDatabase[shortURL];
+    }
+  }
+  return userURLs;
+};
 
 //DATABASE
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "userRandomID",
+  },
+  i3BoGr: {
+    longURL: "http://www.google.com",
+    userID: "user2RandomID",
+  },
 };
 const users = {
   userRandomID: {
@@ -64,7 +80,7 @@ app.get('/register', (req, res) => {
   const userId = req.cookies['user_id'];
   //check if user is logged in
   if (userId) {
-  return res.redirect('/urls');
+    return res.redirect('/urls');
   }
   const templateVars = {
     user: users[userId],
@@ -76,7 +92,7 @@ app.get('/register', (req, res) => {
 app.get('/login', (req, res) => {
   const userId = req.cookies['user_id'];
   if (userId) {
-   return res.redirect('/urls');
+    return res.redirect('/urls');
   }
   const templateVars = {
     user: users[userId]
@@ -86,9 +102,13 @@ app.get('/login', (req, res) => {
 //Urls
 //fetches main URL page
 app.get('/urls', (req, res) => {
+  const userId = req.cookies['user_id'];
+  if (!userId) {
+    return res.status(401).send("Access denied. Please Login or Register.");
+  }
   const templateVars = {
-    user: users[req.cookies['user_id']],
-    urls: urlDatabase
+    user: users[userId],
+    urls: urlsForUser(userId, urlDatabase)
   };
   res.render('urls_index', templateVars);
 });
@@ -98,26 +118,37 @@ app.get('/urls/new', (req, res) => {
   const userId = req.cookies['user_id'];
   //check if user is logged in
   if (!userId) {
-   return res.redirect('/login');
+    return res.redirect('/login');
   }
-  const templateVars = { 
+  const templateVars = {
     user: users[req.cookies['user_id']],
   };
   res.render('urls_new', templateVars);
 });
 
 app.get('/urls/:id', (req, res) => {
+  const userId = req.cookies['user_id'];
+  const shortURL = req.params.id;
+  //check if id exists
+  if (!urlDatabase[shortURL]) {
+    return res.status(404).send("URL with provided id doesn't exist in our database.");
+  }
+  if (!userId) {
+    return res.status(401).send("Access denied. Please Login or Register.");
+  } if (userId !== urlDatabase[shortURL].userID) {
+    return res.status(401).send("Access denied. This URL belongs to another user.");
+  }
   const templateVars = {
-    user: users[req.cookies['user_id']],
+    user: users[userId],
     id: req.params.id,
-    longURL: urlDatabase[req.params.id]
+    longURL: urlDatabase[req.params.id].longURL
   };
   res.render('urls_show', templateVars);
 });
 
 app.get('/u/:id', (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    return res.status(404).send("URL doesn't exist in our database")
+    return res.status(404).send("URL with provided id doesn't exist in our database.");
   }
   const shortURL = req.params.id;
   const longURL = urlDatabase[shortURL].longURL;
@@ -171,27 +202,57 @@ app.post('/logout', (req, res) => {
 app.post('/urls', (req, res) => {
   const userId = req.cookies['user_id'];
   if (!userId) {
-   return res.send("Only users who are logged in can shorten URLs. Please Login or Register.");
+    return res.status(401).send("Only users who are logged in can shorten URLs. Please Login or Register.");
   }
-  const longURL = req.body.longURL;
+  const newLongURL = req.body.longURL;
   const newShortURL = generateRandomString();
   //add new url to database
-  urlDatabase[newShortURL] = longURL;
-  // Use route to view the new url you made!
+  urlDatabase[newShortURL] = {
+    longURL: newLongURL,
+    userID: userId
+  };
   res.redirect(`/urls/${newShortURL}`);
 });
 //edits and updates long URL in database
 app.post('/urls/:id/', (req, res) => {
-  const editLongURL = req.body.type;
-  urlDatabase[req.params.id] = editLongURL;
-  res.redirect('/urls');
+  const userId = req.cookies['user_id'];
+  const userURLs = urlsForUser(userId, urlDatabase);
+  const shortURL = req.params.id;
+  //if id doesn't exist
+  if (!urlDatabase[shortURL]) {
+    return res.status(404).send("URL with provided id doesn't exist in our database.");
+  //if the user is not logged in
+  } if (!userId) {
+    return res.status(401).send("Access denied. Please Login or Register.");
+  //if the user doesn't own URL
+  } if (!Object.keys(userURLs).includes(shortURL)) {
+    return res.status(401).send("Access denied. This URL belongs to another user.");
+  } else {
+    const editLongURL = req.body.type;
+    //update long URL in database
+    urlDatabase[req.params.id].longURL = editLongURL;
+    return res.redirect('/urls');
+  }
 });
 //Delete
 //allows user to delete urls
 app.post('/urls/:id/delete', (req, res) => {
-  const urlID = req.params.id;
-  delete urlDatabase[urlID];
-  res.redirect('/urls');
+  const userId = req.cookies['user_id'];
+  const userURLs = urlsForUser(userId, urlDatabase);
+  const shortURL = req.params.id;
+  if (!urlDatabase[shortURL]) {
+    return res.status(404).send("URL with provided id doesn't exist in our database.");
+  } if (!userId) {
+    return res.status(401).send("Access denied. Please Login or Register.");
+  } if (!Object.keys(userURLs).includes(shortURL)) {
+    return res.status(401).send("Access denied. This URL belongs to another user.");
+  } else {
+    const urlID = req.params.id;
+    //removes URL from database object
+    delete urlDatabase[urlID];
+    //redirects to urls_index ('/urls')
+    return res.redirect('/urls');
+  }
 });
 
 //LISTENER
