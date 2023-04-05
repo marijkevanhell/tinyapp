@@ -133,11 +133,9 @@ app.post('/login', (req, res) => {
   const password = req.body.password;
   const foundUser = checkIfEmailExists(email);
   if (!foundUser.id) {
-    res.status(403);
-    res.send("Email cannot be found. Please register.");
+    res.status(403).send("Error 403: Email cannot be found. Please register.");
   } else if (foundUser.password !== password) {
-    res.status(403);
-    res.send("Password doesn't match email address provided.");
+    res.status(403).send("Error 403: Password doesn't match email address provided.");
   } else {
     res.cookie('user_id', foundUser.id);
     res.redirect('/urls');
