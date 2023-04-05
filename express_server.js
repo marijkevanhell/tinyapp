@@ -60,16 +60,26 @@ app.get("/hello", (req, res) => {
 //Register
 //fetches registration page
 app.get('/register', (req, res) => {
+  //get user's cookie
+  const userId = req.cookies['user_id'];
+  //check if user is logged in
+  if (userId) {
+  return res.redirect('/urls');
+  }
   const templateVars = {
-    user: users[req.cookies['user_id']],
+    user: users[userId],
   };
   res.render('urls_register', templateVars);
 });
 //Login
 //fetches login page
 app.get('/login', (req, res) => {
+  const userId = req.cookies['user_id'];
+  if (userId) {
+   return res.redirect('/urls');
+  }
   const templateVars = {
-    user: users[req.cookies['user_id']],
+    user: users[userId]
   };
   res.render('urls_login', templateVars);
 });
@@ -84,7 +94,13 @@ app.get('/urls', (req, res) => {
 });
 //fetches page to create new URL
 app.get('/urls/new', (req, res) => {
-  const templateVars = {
+  //get user's cookie
+  const userId = req.cookies['user_id'];
+  //check if user is logged in
+  if (!userId) {
+   return res.redirect('/login');
+  }
+  const templateVars = { 
     user: users[req.cookies['user_id']],
   };
   res.render('urls_new', templateVars);
@@ -99,17 +115,19 @@ app.get('/urls/:id', (req, res) => {
   res.render('urls_show', templateVars);
 });
 
-app.get("/urls/:id", (req, res) => {
- 
+app.get('/u/:id', (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    return res.status(404).send("URL doesn't exist in our database")
+  }
   const shortURL = req.params.id;
-  const longURL = urlDatabase[shortURL];
-
+  const longURL = urlDatabase[shortURL].longURL;
   res.redirect(longURL);
 });
 //Post
 //registers new user
 app.post('/register', (req, res) => {
   const id = generateRandomString();
+  //take email & password from body object
   const email = req.body.email;
   const password = req.body.password;
   if (req.body.email === '' || req.body.password === '') {
@@ -119,6 +137,7 @@ app.post('/register', (req, res) => {
     res.status(400);
     res.send("Can't register with an email address that has already been used.");
   } else {
+    //makes new user object
     const user = {id, email, password};
     //adds new user to user object
     users[id] = user;
@@ -133,9 +152,11 @@ app.post('/login', (req, res) => {
   const password = req.body.password;
   const foundUser = checkIfEmailExists(email);
   if (!foundUser.id) {
-    res.status(403).send("Error 403: Email cannot be found. Please register.");
+    res.status(403);
+    res.send("Email cannot be found. Please register.");
   } else if (foundUser.password !== password) {
-    res.status(403).send("Error 403: Password doesn't match email address provided.");
+    res.status(403);
+    res.send("Password doesn't match email address provided.");
   } else {
     res.cookie('user_id', foundUser.id);
     res.redirect('/urls');
@@ -147,10 +168,16 @@ app.post('/logout', (req, res) => {
   res.redirect('/login');
 });
 //adds new short url to database
-app.post("/urls", (req, res) => {
+app.post('/urls', (req, res) => {
+  const userId = req.cookies['user_id'];
+  if (!userId) {
+   return res.send("Only users who are logged in can shorten URLs. Please Login or Register.");
+  }
   const longURL = req.body.longURL;
   const newShortURL = generateRandomString();
+  //add new url to database
   urlDatabase[newShortURL] = longURL;
+  // Use route to view the new url you made!
   res.redirect(`/urls/${newShortURL}`);
 });
 //edits and updates long URL in database
