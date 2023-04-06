@@ -100,10 +100,6 @@ app.get('/urls/new', (req, res) => {
 app.get('/urls/:id', (req, res) => {
   const userId = req.session.user_id;
   const shortURL = req.params.id;
-  console.log(userId)
-  console.log(shortURL)
-  console.log(urlDatabase)
-  console.log(userId !== urlDatabase[shortURL].userID)
   //check if id exists
   if (!urlDatabase[shortURL]) {
     return res.status(404).send("URL with provided id doesn't exist in our database.");
@@ -193,7 +189,6 @@ app.post('/urls/:id/', (req, res) => {
   const userId = req.session.user_id;
   const userURLs = urlsForUser(userId, urlDatabase);
   const shortURL = req.params.id;
-  console.log(userURLs)
   //if id doesn't exist
   if (!urlDatabase[shortURL]) {
     return res.status(404).send("URL with provided id doesn't exist in our database.");
