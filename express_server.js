@@ -2,39 +2,12 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const cookieSession = require('cookie-session');
+const { getUserByEmail, generateRandomString, urlsForUser } = require('./helpers');
 
 //CONFIGURATIONS
 const PORT = 8080; // default port 8080
 const app = express();
 app.set("view engine", "ejs");
-
-//HELPER FUNCTIONS
-const generateRandomString = function() {
-  //random string of characters and cuts off at a length of 6 w/ substr method
-  return Math.random().toString(36).substr(6);
-};
-//checks if email entered already exists
-const checkIfEmailExists = function(email) {
-  let userFound = null;
-  for (const userId in users) {
-    const user = users[userId];
-    if (user.email === email) {
-      userFound = user;
-      return userFound;
-    }
-  }
-  return false;
-};
-//returns URLs where userID = id of the currently logged-in user
-const urlsForUser = function(id, urlDatabase) {
-  const userURLs = {};
-  for (const shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
-      userURLs[shortURL] = urlDatabase[shortURL];
-    }
-  }
-  return userURLs;
-};
 
 //DATABASE
 const urlDatabase = {
@@ -56,7 +29,7 @@ app.use(cookieSession({
   keys: ['secretkey'],
   //expires after 24 hrs
   maxAge: 24 * 60 * 60 * 1000
-}))
+}));
 
 //ROUTES
 app.get("/", (req, res) => {
@@ -127,6 +100,10 @@ app.get('/urls/new', (req, res) => {
 app.get('/urls/:id', (req, res) => {
   const userId = req.session.user_id;
   const shortURL = req.params.id;
+  console.log(userId)
+  console.log(shortURL)
+  console.log(urlDatabase)
+  console.log(userId !== urlDatabase[shortURL].userID)
   //check if id exists
   if (!urlDatabase[shortURL]) {
     return res.status(404).send("URL with provided id doesn't exist in our database.");
@@ -162,7 +139,7 @@ app.post('/register', (req, res) => {
   const hashedPassword = bcrypt.hashSync(password, 10);
   if (req.body.email === '' || req.body.password === '') {
     res.status(400).send('Invalid email or password');
-  } else if (checkIfEmailExists(email)) {
+  } else if (getUserByEmail(email, users)) {
     res.status(400).send("Can't register with an email address that has already been used.");
   } else {
     //makes new user object
@@ -173,7 +150,6 @@ app.post('/register', (req, res) => {
     };
     //adds new user to user object
     users[id] = user;
-    //adds new user id cookie
     req.session.user_id = id;
     res.redirect('/urls');
   }
@@ -182,7 +158,7 @@ app.post('/register', (req, res) => {
 app.post('/login', (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const foundUser = checkIfEmailExists(email);
+  const foundUser = getUserByEmail(email, users);
   if (!foundUser) {
     res.status(403).send("Email cannot be found. Please register.");
   } else if (!bcrypt.compareSync(password, foundUser.password)) {
@@ -217,6 +193,7 @@ app.post('/urls/:id/', (req, res) => {
   const userId = req.session.user_id;
   const userURLs = urlsForUser(userId, urlDatabase);
   const shortURL = req.params.id;
+  console.log(userURLs)
   //if id doesn't exist
   if (!urlDatabase[shortURL]) {
     return res.status(404).send("URL with provided id doesn't exist in our database.");
