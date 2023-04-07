@@ -1,8 +1,8 @@
 //DEPENDENCIES
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const cookieSession = require('cookie-session');
-const { getUserByEmail, generateRandomString, urlsForUser } = require('./helpers');
+const cookieSession = require("cookie-session");
+const { getUserByEmail, generateRandomString, urlsForUser } = require("./helpers");
 
 //CONFIGURATIONS
 const PORT = 8080; // default port 8080
@@ -25,8 +25,8 @@ const users = {};
 //MIDDLEWARE
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
-  name: 'session',
-  keys: ['secretkey'],
+  name: "session",
+  keys: ["secretkey"],
   //expires after 24 hrs
   maxAge: 24 * 60 * 60 * 1000
 }));
